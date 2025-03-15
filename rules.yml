@@ -1,0 +1,11 @@
+groups:
+  - name: Count greater than 5
+    rules:
+      - alert: CountGreaterThan5
+        expr: ping_request_count > 5
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ping request count is greater than 5"
+          description: "The number of ping requests has been greater than 5 for the last 10 seconds."

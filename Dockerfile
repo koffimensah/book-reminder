@@ -1,38 +1,26 @@
-# Stage 1: Build Dependencies
-FROM ruby:3.1.0 AS builder
-
-# Set working directory
-WORKDIR /app
-
-# Install required Linux packages
-RUN apt-get update && apt-get install -y \
-    nodejs \
-    yarn \
-    mariadb-client \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Copy Gemfile and install dependencies first (for caching efficiency)
-COPY Gemfile Gemfile.lock ./
-RUN gem install bundler && bundle install --without development test
-
-# Copy the rest of the application
-COPY . .
-
-# Stage 2: Runtime
+# Use the official Ruby image as the base image
 FROM ruby:3.1.0
 
-WORKDIR /app
+# Install dependencies
+RUN apt-get update -qq && apt-get install -y \
+  mariadb-client \
+  nodejs \
+  yarn
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    mariadb-client \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Set the working directory
+WORKDIR /usr/src/app
 
-# Copy built dependencies from the first stage
-COPY --from=builder /usr/local/bundle /usr/local/bundle
-COPY --from=builder /app /app
+# Install Rails dependencies
+COPY Gemfile Gemfile.lock ./
+RUN bundle install
 
-# Expose the default Rails port
+# Copy the application code
+COPY . .
+
+# Precompile assets (if needed)
+RUN RAILS_ENV=production bundle exec rake assets:precompile
+
+# Expose the port the app will run on
 EXPOSE 3000
 
 # Start the Rails server

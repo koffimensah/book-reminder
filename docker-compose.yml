@@ -1,33 +1,93 @@
-version: '3.8'
+version: '3.7'
 
 services:
-  app:
+  web:
     build: .
-    container_name: book-reminder-container
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -b '0.0.0.0'"
+    volumes:
+      - ".:/usr/src/app"
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       - db
     environment:
-      DATABASE_HOST: db
-      DATABASE_USER: root
-      DATABASE_PASSWORD: 'book_123'
-      DATABASE_NAME: book_reminder
-    volumes:
-      - .:/app
-    command: ["rails", "server", "-b", "0.0.0.0"]
+      - RAILS_ENV=development
+      - DATABASE_URL=mysql2://root:abc_123@db:3308/book_reminder_development
+    networks:
+      - app_network
 
   db:
-    image: mariadb:latest
-    container_name: book-reminder-db
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: 'db_123'
-      MYSQL_DATABASE: book_db
-    ports:
-      - "3306:3306"
+    image: mariadb:10.5
     volumes:
-      - db_data:/var/lib/mysql
+      - "mariadb_data:/var/lib/mysql"
+    environment:
+      MYSQL_ROOT_PASSWORD: 'abc_123'
+      MYSQL_DATABASE: book_reminder_development
+    ports:
+      - "3308:3306"
+    networks:
+      - app_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./rules.yml:/etc/prometheus/rules.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - app_network
+
+  node_exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"  # Expose the Node Exporter port
+    networks:
+      - app_network
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    volumes:
+      - ./alert-manager.yml:/etc/alertmanager/alert-manager.yml
+    ports:
+      - "9093:9093"  # Expose Alertmanager UI
+    networks:
+      - app_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - TERM=linux
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-polystat-panel
+      - GF_SECURITY_ADMIN_USER=s7koffi
+      - GF_SECURITY_ADMIN_PASSWORD='Mygrafana'
+    ports:
+      - '3006:3000'
+    volumes:
+      - 'grafana_storage:/var/lib/grafana'
+    networks:
+      - app_network
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    ports:
+      - "8089:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/sys:/sys:ro"
+      - "/var/lib/docker/:/var/lib/docker:ro"
+    networks:
+      - app_network
 
 volumes:
-  db_data:
+  mariadb_data:
+    driver: local
+  grafana_storage: {}
+
+networks:
+  app_network:
+    driver: bridge

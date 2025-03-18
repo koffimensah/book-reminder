@@ -1,4 +1,4 @@
-version: '3.7'
+# version: '3.7'
 
 services:
   web:
@@ -21,7 +21,7 @@ services:
     volumes:
       - "mariadb_data:/var/lib/mysql"
     environment:
-      MYSQL_ROOT_PASSWORD: 'abc_123'
+      MYSQL_ROOT_PASSWORD: abc_123
       MYSQL_DATABASE: book_reminder_development
     ports:
       - "3308:3306"
@@ -41,7 +41,7 @@ services:
   node_exporter:
     image: prom/node-exporter:latest
     ports:
-      - "9100:9100"  # Expose the Node Exporter port
+      - "9100:9100"
     networks:
       - app_network
 
@@ -50,7 +50,7 @@ services:
     volumes:
       - ./alert-manager.yml:/etc/alertmanager/alert-manager.yml
     ports:
-      - "9093:9093"  # Expose Alertmanager UI
+      - "9093:9093"
     networks:
       - app_network
 
@@ -60,13 +60,16 @@ services:
     restart: unless-stopped
     environment:
       - TERM=linux
-      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-polystat-panel
       - GF_SECURITY_ADMIN_USER=s7koffi
-      - GF_SECURITY_ADMIN_PASSWORD='Mygrafana'
+      - GF_SECURITY_ADMIN_PASSWORD=Mygrafana
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
     ports:
-      - '3006:3000'
+      - "3006:3000"
     volumes:
-      - 'grafana_storage:/var/lib/grafana'
+      - "grafana_storage:/var/lib/grafana"
+      - "./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources"
+      - "./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards"
     networks:
       - app_network
 
@@ -80,6 +83,8 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "/sys:/sys:ro"
       - "/var/lib/docker/:/var/lib/docker:ro"
+    security_opt:
+      - no-new-privileges:true
     networks:
       - app_network
 

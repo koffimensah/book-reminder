@@ -1,0 +1,21 @@
+{
+    "id": null,
+    "uid": "prometheus-dashboard",
+    "title": "Prometheus Metrics",
+    "timezone": "browser",
+    "panels": [
+        {
+            "title": "CPU Usage",
+            "type": "graph",
+            "targets": [
+                {
+                    "expr": "rate(node_cpu_seconds_total[5m])",
+                    "legendFormat": "{{cpu}}"
+                }
+            ],
+            "gridPos": { "x": 0, "y": 0, "w": 12, "h": 6 }
+        }
+    ],
+    "schemaVersion": 22,
+    "version": 1
+}
